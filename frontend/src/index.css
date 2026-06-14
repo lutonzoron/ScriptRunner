@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-base: 248 250 252;
+    --bg-surface: 255 255 255;
+    --bg-surface-elevated: 255 255 255;
+    --bg-sidebar: 255 255 255;
+    --border-default: 226 232 240;
+    --text-primary: 15 23 42;
+    --text-muted: 100 116 139;
+    --brand: 37 99 235;
+    color-scheme: light;
+  }
+
+  .dark {
+    --bg-base: 2 6 23;
+    --bg-surface: 15 23 42;
+    --bg-surface-elevated: 30 41 59;
+    --bg-sidebar: 15 23 42;
+    --border-default: 51 65 85;
+    --text-primary: 248 250 252;
+    --text-muted: 148 163 184;
+    --brand: 59 130 246;
+    color-scheme: dark;
+  }
+
+  html {
+    transition-property: color, background-color, border-color;
+    transition-duration: 200ms;
+  }
+
+  body {
+    background-color: rgb(var(--bg-base));
+    color: rgb(var(--text-primary));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: Inter, system-ui, sans-serif;
+  }
+}
