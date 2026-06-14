@@ -7,7 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 from app.config import get_settings
 from app.models import DOCUMENT_MODELS
-from app.routers import audit, auth, databases, scripts, servers, users
+from app.routers import audit, auth, bundles, databases, scripts, servers, users
 from app.seed import seed_admin
 
 
@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(servers.router, prefix="/api")
     app.include_router(databases.router, prefix="/api")
     app.include_router(scripts.router, prefix="/api")
+    app.include_router(bundles.router, prefix="/api")
     app.include_router(audit.router, prefix="/api")
 
     @app.get("/api/health")

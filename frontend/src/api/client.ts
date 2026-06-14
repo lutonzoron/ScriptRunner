@@ -1,6 +1,7 @@
 import type {
   AuditLog,
   DashboardStats,
+  ScriptBundle,
   ScriptRequest,
   Server,
   User,
@@ -136,6 +137,73 @@ export async function submitScript(server_id: string, database_name: string, tsq
   return request<ScriptRequest>("/scripts", {
     method: "POST",
     body: JSON.stringify({ server_id, database_name, tsql_content }),
+  });
+}
+
+export async function getBundles() {
+  return request<ScriptBundle[]>("/bundles");
+}
+
+export async function getPendingBundles() {
+  return request<ScriptBundle[]>("/bundles/pending");
+}
+
+export async function getBundle(id: string) {
+  return request<ScriptBundle>(`/bundles/${id}`);
+}
+
+export async function submitBundle(data: {
+  title: string;
+  demand_reference: string;
+  pr_url: string;
+  server_ids: string[];
+  database_name: string;
+  scripts: { tsql_content: string }[];
+}) {
+  return request<ScriptBundle>("/bundles", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function approveBundle(
+  id: string,
+  data: {
+    approve: boolean;
+    checked_environment: boolean;
+    checked_tsql: boolean;
+    checked_where_clause: boolean;
+    checked_impact: boolean;
+    checked_timing: boolean;
+    checked_auto_validation: boolean;
+    rejection_reason?: string;
+  }
+) {
+  return request<ScriptBundle>(`/bundles/${id}/approve`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function resubmitScript(id: string, tsql_content: string) {
+  return request<ScriptRequest>(`/scripts/${id}/resubmit`, {
+    method: "POST",
+    body: JSON.stringify({ tsql_content }),
+  });
+}
+
+export async function resubmitBundle(
+  id: string,
+  data: {
+    title?: string;
+    demand_reference?: string;
+    pr_url?: string;
+    scripts: { tsql_content: string }[];
+  }
+) {
+  return request<ScriptBundle>(`/bundles/${id}/resubmit`, {
+    method: "POST",
+    body: JSON.stringify(data),
   });
 }
 

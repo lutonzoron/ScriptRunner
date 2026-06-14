@@ -140,6 +140,30 @@ class ScriptSubmit(BaseModel):
     tsql_content: str = Field(min_length=1)
 
 
+class BundleScriptItem(BaseModel):
+    tsql_content: str = Field(min_length=1)
+
+
+class BundleSubmit(BaseModel):
+    title: str = Field(min_length=1)
+    demand_reference: str = Field(min_length=1)
+    pr_url: str = Field(min_length=1)
+    server_ids: list[str] = Field(min_length=1)
+    database_name: str = Field(min_length=1)
+    scripts: list[BundleScriptItem] = Field(min_length=1)
+
+
+class ScriptResubmit(BaseModel):
+    tsql_content: str = Field(min_length=1)
+
+
+class BundleResubmit(BaseModel):
+    title: Optional[str] = None
+    demand_reference: Optional[str] = None
+    pr_url: Optional[str] = None
+    scripts: list[BundleScriptItem] = Field(min_length=1)
+
+
 class ApprovalRequest(BaseModel):
     checked_environment: bool
     checked_tsql: bool
@@ -155,6 +179,9 @@ class ScriptResponse(BaseModel):
     id: str
     submitted_by: str
     submitted_by_name: str
+    bundle_id: Optional[str] = None
+    script_sequence: int = 0
+    server_sequence: int = 0
     server_id: str
     database_name: str
     database_display_name: str
@@ -165,6 +192,27 @@ class ScriptResponse(BaseModel):
     validation_result: list[ValidationIssue]
     approval: Optional[dict] = None
     execution_result: Optional[dict] = None
+    created_at: datetime
+    validated_at: Optional[datetime] = None
+    executed_at: Optional[datetime] = None
+
+
+class BundleResponse(BaseModel):
+    id: str
+    submitted_by: str
+    submitted_by_name: str
+    title: str
+    demand_reference: str
+    pr_url: str
+    server_ids: list[str]
+    server_names: list[str]
+    database_name: str
+    environment: str
+    status: str
+    approval: Optional[dict] = None
+    script_count: int
+    server_count: int
+    scripts: list[ScriptResponse] = Field(default_factory=list)
     created_at: datetime
     validated_at: Optional[datetime] = None
     executed_at: Optional[datetime] = None
@@ -186,5 +234,6 @@ class AuditLogResponse(BaseModel):
 class DashboardStats(BaseModel):
     pending_approvals: int
     my_scripts: int
+    my_bundles: int
     recent_executed: int
     recent_failed: int

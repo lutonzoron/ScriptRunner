@@ -25,6 +25,17 @@ export type ScriptStatus =
   | "executing"
   | "executed"
   | "execution_failed"
+  | "manually_rejected"
+  | "skipped";
+
+export type BundleStatus =
+  | "validating"
+  | "auto_rejected"
+  | "pending_approval"
+  | "approved"
+  | "executing"
+  | "executed"
+  | "execution_failed"
   | "manually_rejected";
 
 export interface ScriptApproval {
@@ -40,6 +51,9 @@ export interface ScriptRequest {
   id: string;
   submitted_by: string;
   submitted_by_name: string;
+  bundle_id?: string;
+  script_sequence?: number;
+  server_sequence?: number;
   server_id: string;
   database_name: string;
   database_display_name: string;
@@ -56,6 +70,27 @@ export interface ScriptRequest {
     error?: string;
     batches_executed?: number;
   };
+  created_at: string;
+  validated_at?: string;
+  executed_at?: string;
+}
+
+export interface ScriptBundle {
+  id: string;
+  submitted_by: string;
+  submitted_by_name: string;
+  title: string;
+  demand_reference: string;
+  pr_url: string;
+  server_ids: string[];
+  server_names: string[];
+  database_name: string;
+  environment: string;
+  status: BundleStatus;
+  approval?: ScriptApproval;
+  script_count: number;
+  server_count: number;
+  scripts: ScriptRequest[];
   created_at: string;
   validated_at?: string;
   executed_at?: string;
@@ -86,6 +121,7 @@ export interface AuditLog {
 export interface DashboardStats {
   pending_approvals: number;
   my_scripts: number;
+  my_bundles: number;
   recent_executed: number;
   recent_failed: number;
 }

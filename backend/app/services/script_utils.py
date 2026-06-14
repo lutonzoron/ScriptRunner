@@ -9,6 +9,15 @@ def compute_content_hash(content: str) -> str:
     return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
+def normalize_external_url(url: str) -> str:
+    trimmed = url.strip()
+    if not trimmed:
+        return trimmed
+    if re.match(r"^[a-z][a-z0-9+.-]*:", trimmed, re.IGNORECASE):
+        return trimmed
+    return f"https://{trimmed}"
+
+
 def split_batches(script: str) -> list[str]:
     lines = script.splitlines(keepends=True)
     batches: list[str] = []

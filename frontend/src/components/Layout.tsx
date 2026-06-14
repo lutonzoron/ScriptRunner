@@ -2,7 +2,6 @@ import { useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
-  FileCode,
   ClipboardList,
   Shield,
   Server,
@@ -21,7 +20,6 @@ import Button from "@/components/ui/Button";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/submit", label: "Submeter Script", icon: FileCode },
   { to: "/my-scripts", label: "Minhas Solicitações", icon: ClipboardList },
   {
     to: "/approvals",
@@ -46,7 +44,6 @@ const navItems = [
 
 const pageTitles: Record<string, string> = {
   "/": "Dashboard",
-  "/submit": "Submeter Script",
   "/my-scripts": "Minhas Solicitações",
   "/approvals": "Fila de Aprovação",
   "/servers": "Servidores",

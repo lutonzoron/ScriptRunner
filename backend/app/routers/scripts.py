@@ -6,10 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from app.auth.dependencies import require_full_access, require_roles
 from app.config import get_settings
 from app.models.audit_log import AuditEventType
+from app.models.script_bundle import BundleStatus, ScriptBundle
 from app.models.script_request import ApprovalChecklist, ScriptRequest, ScriptStatus
 from app.models.server import Server
 from app.models.user import User, UserRole
-from app.schemas import ApprovalRequest, DashboardStats, ScriptResponse, ScriptSubmit
+from app.schemas import ApprovalRequest, DashboardStats, ScriptResubmit, ScriptResponse, ScriptSubmit
 from app.services.audit import log_audit
 from app.services.script_service import (
     _to_script_dict,
@@ -17,6 +18,7 @@ from app.services.script_service import (
     can_view_script,
     execute_approved_script,
     process_validation,
+    resubmit_script,
 )
 from app.services.script_utils import compute_content_hash
 
@@ -48,23 +50,43 @@ def _script_response(script: ScriptRequest) -> ScriptResponse:
 @router.get("/dashboard", response_model=DashboardStats)
 async def dashboard(user: User = Depends(require_full_access)):
     if user.role in (UserRole.ADMIN, UserRole.COORDINATOR):
-        pending = await ScriptRequest.find(
-            ScriptRequest.status == ScriptStatus.PENDING_APPROVAL
+        pending_scripts = await ScriptRequest.find(
+            ScriptRequest.status == ScriptStatus.PENDING_APPROVAL,
+            ScriptRequest.bundle_id == None,
         ).count()
+        pending_bundles = await ScriptBundle.find(
+            ScriptBundle.status == BundleStatus.PENDING_APPROVAL
+        ).count()
+        pending = pending_scripts + pending_bundles
     else:
         pending = 0
 
-    my_scripts = await ScriptRequest.find(ScriptRequest.submitted_by == str(user.id)).count()
+    my_scripts = await ScriptRequest.find(
+        ScriptRequest.submitted_by == str(user.id),
+        ScriptRequest.bundle_id == None,
+    ).count()
+    my_bundles = await ScriptBundle.find(
+        ScriptBundle.submitted_by == str(user.id)
+    ).count()
     recent_executed = await ScriptRequest.find(
-        ScriptRequest.status == ScriptStatus.EXECUTED
+        ScriptRequest.status == ScriptStatus.EXECUTED,
+        ScriptRequest.bundle_id == None,
+    ).count()
+    recent_executed += await ScriptBundle.find(
+        ScriptBundle.status == BundleStatus.EXECUTED
     ).count()
     recent_failed = await ScriptRequest.find(
-        ScriptRequest.status == ScriptStatus.EXECUTION_FAILED
+        ScriptRequest.status == ScriptStatus.EXECUTION_FAILED,
+        ScriptRequest.bundle_id == None,
+    ).count()
+    recent_failed += await ScriptBundle.find(
+        ScriptBundle.status == BundleStatus.EXECUTION_FAILED
     ).count()
 
     return DashboardStats(
         pending_approvals=pending,
         my_scripts=my_scripts,
+        my_bundles=my_bundles,
         recent_executed=recent_executed,
         recent_failed=recent_failed,
     )
@@ -73,10 +95,17 @@ async def dashboard(user: User = Depends(require_full_access)):
 @router.get("", response_model=list[ScriptResponse])
 async def list_scripts(user: User = Depends(require_full_access)):
     if user.role in (UserRole.ADMIN, UserRole.COORDINATOR):
-        scripts = await ScriptRequest.find_all().sort(-ScriptRequest.created_at).to_list()
+        scripts = (
+            await ScriptRequest.find(ScriptRequest.bundle_id == None)
+            .sort(-ScriptRequest.created_at)
+            .to_list()
+        )
     else:
         scripts = (
-            await ScriptRequest.find(ScriptRequest.submitted_by == str(user.id))
+            await ScriptRequest.find(
+                ScriptRequest.submitted_by == str(user.id),
+                ScriptRequest.bundle_id == None,
+            )
             .sort(-ScriptRequest.created_at)
             .to_list()
         )
@@ -86,7 +115,10 @@ async def list_scripts(user: User = Depends(require_full_access)):
 @router.get("/pending", response_model=list[ScriptResponse])
 async def list_pending(user: User = Depends(require_roles(UserRole.ADMIN, UserRole.COORDINATOR))):
     scripts = (
-        await ScriptRequest.find(ScriptRequest.status == ScriptStatus.PENDING_APPROVAL)
+        await ScriptRequest.find(
+            ScriptRequest.status == ScriptStatus.PENDING_APPROVAL,
+            ScriptRequest.bundle_id == None,
+        )
         .sort(-ScriptRequest.created_at)
         .to_list()
     )
@@ -233,4 +265,36 @@ async def approve_script(
     )
 
     script = await execute_approved_script(str(script.id), user)
+    return _script_response(script)
+
+
+@router.post("/{script_id}/resubmit", response_model=ScriptResponse)
+async def resubmit_script_endpoint(
+    script_id: str,
+    body: ScriptResubmit,
+    request: Request,
+    user: User = Depends(require_full_access),
+):
+    _check_submit_rate(str(user.id))
+
+    script = await ScriptRequest.get(script_id)
+    if not script:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Solicitação não encontrada")
+
+    try:
+        script = await resubmit_script(script_id, user, body.tsql_content)
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    await log_audit(
+        AuditEventType.SCRIPT_RESUBMITTED,
+        actor=user,
+        entity_type="script_request",
+        entity_id=str(script.id),
+        metadata={"content_hash": script.content_hash},
+        request=request,
+    )
+
     return _script_response(script)

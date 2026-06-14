@@ -15,6 +15,7 @@ class ScriptStatus(str, Enum):
     EXECUTED = "executed"
     EXECUTION_FAILED = "execution_failed"
     MANUALLY_REJECTED = "manually_rejected"
+    SKIPPED = "skipped"
 
 
 class ValidationSeverity(str, Enum):
@@ -57,6 +58,9 @@ class ExecutionResult(BaseModel):
 class ScriptRequest(Document):
     submitted_by: str
     submitted_by_name: str
+    bundle_id: Optional[str] = None
+    script_sequence: int = 0
+    server_sequence: int = 0
     server_id: str
     database_name: str
     database_display_name: str

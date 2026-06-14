@@ -18,8 +18,6 @@ import MyScriptsPage from "@/pages/MyScriptsPage";
 
 import ServersPage from "@/pages/ServersPage";
 
-import SubmitPage from "@/pages/SubmitPage";
-
 import UsersPage from "@/pages/UsersPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -47,7 +45,7 @@ export default function App() {
       >
         <Route index element={<DashboardPage />} />
 
-        <Route path="submit" element={<SubmitPage />} />
+        <Route path="submit" element={<Navigate to="/my-scripts" replace />} />
 
         <Route path="my-scripts" element={<MyScriptsPage />} />
 
